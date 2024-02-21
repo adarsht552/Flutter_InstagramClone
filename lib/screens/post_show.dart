@@ -2,8 +2,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:instagram_clone/screens/comment_screen.dart';
+import 'package:instagram_clone/utils/storypage.dart';
 import 'package:like_button/like_button.dart';
 import 'package:line_icons/line_icons.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:instagram_clone/screens/user_profile_page.dart';
 
 import 'UserProfile_Page.dart'; // Import your user profile page
@@ -20,7 +22,11 @@ class PostShow extends StatelessWidget {
         ),
         actions: [
           IconButton(
-            icon: const Icon(LineIcons.facebookMessenger, color: Colors.white,size: 27,),
+            icon: const Icon(
+              LineIcons.facebookMessenger,
+              color: Colors.white,
+              size: 27,
+            ),
             onPressed: () {
               Navigator.pushNamed(context, '/user_list');
               // Handle navigating to messages or notifications
@@ -36,9 +42,7 @@ class PostShow extends StatelessWidget {
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
+            return _buildSkeletonLoading(); // Show skeleton loading
           }
 
           if (snapshot.hasError) {
@@ -66,6 +70,100 @@ class PostShow extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildSkeletonLoading() {
+    return ListView.builder(
+      itemCount: 5, // Show 5 skeleton loading items
+      itemBuilder: (context, index) {
+        return Card(
+          color: Colors.grey[900],
+          margin: const EdgeInsets.all(8.0),
+          elevation: 3.0,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ListTile(
+                contentPadding: const EdgeInsets.all(8.0),
+                leading: CircleAvatar(
+                  radius: 25.0,
+                  backgroundColor: Colors.grey[600],
+                ),
+                title: Container(
+                  width: 150.0,
+                  height: 12.0,
+                  color: Colors.grey[600],
+                ),
+                trailing: const Icon(Icons.more_vert, color: Colors.white),
+              ),
+              Container(
+                width: double.infinity,
+                height: 300.0,
+                color: Colors.grey[800],
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.favorite_border,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(width: 8.0),
+                        Icon(
+                          Icons.comment,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(width: 8.0),
+                        Icon(
+                          Icons.send,
+                          color: Colors.white,
+                        ),
+                      ],
+                    ),
+                    Icon(
+                      Icons.bookmark_border,
+                      color: Colors.white,
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: RichText(
+                  text: TextSpan(
+                    style: DefaultTextStyle.of(context).style,
+                    children: [
+                      TextSpan(
+                        text: '',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white),
+                      ),
+                      TextSpan(
+                        text: '',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(height: 8.0),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: Text(
+                  '',
+                ),
+              ),
+              SizedBox(height: 8.0),
+            ],
+          ),
+        );
+      },
+    );
+  }
 }
 
 class PostCard extends StatefulWidget {
@@ -80,7 +178,8 @@ class PostCard extends StatefulWidget {
   _PostCardState createState() => _PostCardState();
 }
 
-class _PostCardState extends State<PostCard> with AutomaticKeepAliveClientMixin {
+class _PostCardState extends State<PostCard>
+    with AutomaticKeepAliveClientMixin {
   int likeCount = 0; // Initial like count
   bool isLiked = false; // Initial liked state
   bool isPostSaved = false; // Initial saved state
@@ -145,8 +244,16 @@ class _PostCardState extends State<PostCard> with AutomaticKeepAliveClientMixin 
             ),
             trailing: const Icon(Icons.more_vert, color: Colors.white),
           ),
-          Image.network(
-            widget.post['imageUrl'] ?? '',
+          CachedNetworkImage(
+            imageUrl: widget.post['imageUrl'] ?? '',
+            placeholder: (context, url) => const SizedBox(
+              width: 24.0,
+              height: 24.0,
+              child: CircularProgressIndicator(
+                strokeWidth: 1.0, // Adjust the strokeWidth as needed
+              ),
+            ),
+            errorWidget: (context, url, error) => const Icon(Icons.error),
             width: double.infinity,
             height: 300.0,
             fit: BoxFit.cover,
@@ -162,8 +269,8 @@ class _PostCardState extends State<PostCard> with AutomaticKeepAliveClientMixin 
                       size: 30,
                       isLiked: isLiked,
                       likeCount: likeCount,
-                      circleColor:
-                          const CircleColor(start: Colors.red, end: Colors.green),
+                      circleColor: const CircleColor(
+                          start: Colors.red, end: Colors.green),
                       bubblesColor: const BubblesColor(
                         dotPrimaryColor: Colors.red,
                         dotSecondaryColor: Colors.green,
@@ -200,17 +307,19 @@ class _PostCardState extends State<PostCard> with AutomaticKeepAliveClientMixin 
                       },
                       child: const Icon(Icons.comment, color: Colors.white),
                     ),
-                   const  SizedBox(width: 8.0),
-                   GestureDetector(child: const Icon(Icons.send, color: Colors.white)),
+                    const SizedBox(width: 8.0),
+                    GestureDetector(
+                      child: const Icon(Icons.send, color: Colors.white),
+                    ),
                   ],
                 ),
                 GestureDetector(
                   onTap: () {
-                        savePost();
-                        setState(() {
-                          isPostSaved = !isPostSaved;
-                        });
-                      },
+                    savePost();
+                    setState(() {
+                      isPostSaved = !isPostSaved;
+                    });
+                  },
                   child: Icon(
                     Icons.bookmark_border,
                     color: isPostSaved ? Colors.blue : Colors.white,
@@ -230,7 +339,8 @@ class _PostCardState extends State<PostCard> with AutomaticKeepAliveClientMixin 
                 children: [
                   TextSpan(
                     text: userData?['username'] ?? '',
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, color: Colors.white),
                   ),
                   TextSpan(
                     text: ' ${widget.post['caption'] ?? ''}',

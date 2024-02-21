@@ -1,7 +1,7 @@
-import 'package:firebase_auth/firebase_auth.dart';
+// import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:instagram_clone/screens/post_screen.dart';
-import 'package:instagram_clone/utils/colors.dart';
+// import 'package:instagram_clone/screens/post_screen.dart';
+// import 'package:instagram_clone/utils/colors.dart';
 import 'package:instagram_clone/utils/globalItems.dart';
 import 'package:line_icons/line_icons.dart';
 
@@ -59,7 +59,7 @@ class _HomePageState extends State<HomePage> {
           BottomNavigationBarItem(icon: Icon(LineIcons.home), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(LineIcons.search), label: 'Search'),
           BottomNavigationBarItem(icon: Icon(LineIcons.podcast), label: 'Add'),
-          BottomNavigationBarItem(icon: Icon(LineIcons.heart), label: 'Profile'),
+          BottomNavigationBarItem(icon: Icon(LineIcons.stackExchange), label: 'Story'),
           BottomNavigationBarItem(icon: Icon(LineIcons.user), label: 'Profile'),
         ],
       ),

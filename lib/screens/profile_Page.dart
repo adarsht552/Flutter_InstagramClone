@@ -76,8 +76,8 @@ class _ProfilePageState extends State<Profilepage> {
             icon: const Icon(Icons.post_add, color: Colors.white),
           ),
           IconButton(
-            onPressed: () {
-              FirebaseAuth.instance.signOut();
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
             },
             icon: const Icon(Icons.exit_to_app, color: Colors.white),
           )
@@ -87,7 +87,7 @@ class _ProfilePageState extends State<Profilepage> {
         stream: FirebaseFirestore.instance.collection('users').doc(currentUser?.uid).snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           }
 
           if (snapshot.hasError) {
@@ -100,7 +100,7 @@ class _ProfilePageState extends State<Profilepage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(

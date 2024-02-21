@@ -1,7 +1,7 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
 
 class UserSearchPage extends StatefulWidget {
   const UserSearchPage({Key? key}) : super(key: key);
@@ -12,13 +12,11 @@ class UserSearchPage extends StatefulWidget {
 
 class _UserSearchPageState extends State<UserSearchPage> {
   late TextEditingController _searchController;
-  List<String> visitedUserIds = [];
 
   @override
   void initState() {
     super.initState();
     _searchController = TextEditingController();
-    _loadVisitedUsers();
   }
 
   @override
@@ -33,12 +31,12 @@ class _UserSearchPageState extends State<UserSearchPage> {
             border: InputBorder.none,
             hintStyle: TextStyle(color: Colors.white),
           ),
-          style: TextStyle(color: Colors.white),
+          style: const TextStyle(color: Colors.white),
           onChanged: (value) => _searchUsers(),
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.clear),
+            icon: const Icon(Icons.clear),
             onPressed: () {
               _searchController.clear();
               _searchUsers();
@@ -48,56 +46,7 @@ class _UserSearchPageState extends State<UserSearchPage> {
       ),
       body: Column(
         children: [
-          const Padding(
-            padding: EdgeInsets.all(8.0),
-            child: Text(
-              'Visited Profiles',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-          ),
           Expanded(
-            child: ListView.builder(
-              itemCount: visitedUserIds.length,
-              itemBuilder: (context, index) {
-                final userId = visitedUserIds[index];
-               return FutureBuilder<DocumentSnapshot>(
-                  future: FirebaseFirestore.instance.collection('users').doc(userId).get(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return ListTile(
-                        title: Text('Loading...'),
-                      );
-                    }
-                    if (snapshot.hasError || !snapshot.hasData) {
-                      return ListTile(
-                        title: Text('Error loading user data'),
-                      );
-                    }
-                    var userData = snapshot.data!.data() as Map<String, dynamic>;
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundImage: NetworkImage(userData['profilePicUrl']),
-                      ),
-                   
-                      
-                      title: Text(userData['username']),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => UserProfilePage(userId: userId),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-          Divider(),
-          Expanded(
-            flex: 2,
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('users')
@@ -110,30 +59,86 @@ class _UserSearchPageState extends State<UserSearchPage> {
                 if (snapshot.hasError) {
                   return Center(child: Text('Error: ${snapshot.error}'));
                 }
-                if (snapshot.data!.docs.isEmpty) {
-                  return Center(child: Text('No users found.'));
-                }
                 return ListView(
                   children: snapshot.data!.docs.map((doc) {
                     return ListTile(
                       leading: CircleAvatar(
                         backgroundImage: NetworkImage(doc['profilePicUrl']),
                       ),
-                      
                       title: Text(doc['username']),
                       subtitle: Text(doc['bio'] ?? ''),
-                      
                       onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => UserProfilePage(userId: doc.id),
+                            builder: (context) =>
+                                UserProfilePage(userId: doc.id),
                           ),
                         );
-                        _addVisitedUser(doc.id);
                       },
                     );
                   }).toList(),
+                );
+              },
+            ),
+          ),
+          Expanded(
+            flex: 5,
+            child: StreamBuilder<QuerySnapshot>(
+              stream:
+                  FirebaseFirestore.instance.collection('posts').snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+                if (snapshot.data!.docs.isEmpty) {
+                  return Center(child: Text('No posts found.'));
+                }
+                List<DocumentSnapshot> posts = snapshot.data!.docs;
+                posts.shuffle();
+                return GridView.builder(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 10.0,
+                    mainAxisSpacing: 10.0,
+                  ),
+                  itemCount: posts.length > 15 ? 15 : posts.length,
+                  itemBuilder: (context, index) {
+                    var post = posts[index].data() as Map<String, dynamic>;
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                UserProfilePage(userId: post['userId']),
+                          ),
+                        );
+                      },
+                      child: Card(
+                        shadowColor: Colors.black,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CachedNetworkImage(
+                              imageUrl: post['imageUrl'],
+                              width: double.infinity,
+                              height: 160.0,
+                              fit: BoxFit.fitHeight,
+                              placeholder: (context, url) => const Center(
+                                  child: CircularProgressIndicator()),
+                              errorWidget: (context, url, error) =>
+                                  const Icon(Icons.error),
+                            ),
+                            SizedBox(height: 8.0),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                 );
               },
             ),
@@ -144,42 +149,7 @@ class _UserSearchPageState extends State<UserSearchPage> {
   }
 
   void _searchUsers() {
-    // Refresh the stream to trigger a new search based on the entered username
     setState(() {});
-  }
-
-  void _addVisitedUser(String userId) {
-    // Add visited user to the top of the list
-    setState(() {
-      if (!visitedUserIds.contains(userId)) {
-        visitedUserIds.insert(0, userId);
-        // Limit the list to 10 recent visited profiles
-        if (visitedUserIds.length > 10) {
-          visitedUserIds.removeLast();
-        }
-      }
-    });
-  }
-
-  void _removeVisitedUser(String userId) {
-    // Remove visited user from the list
-    setState(() {
-      visitedUserIds.remove(userId);
-    });
-  }
-
-  void _loadVisitedUsers() {
-    // Load visited user IDs from Firestore
-    FirebaseFirestore.instance
-        .collection('visited_users')
-        .orderBy('timestamp', descending: true)
-        .limit(10) // Limit to last 10 visited users
-        .get()
-        .then((querySnapshot) {
-      setState(() {
-        visitedUserIds = querySnapshot.docs.map((doc) => doc['user_id']).cast<String>().toList();
-      });
-    });
   }
 
   @override
@@ -188,6 +158,7 @@ class _UserSearchPageState extends State<UserSearchPage> {
     super.dispose();
   }
 }
+
 class UserProfilePage extends StatelessWidget {
   final String userId;
 
@@ -201,7 +172,10 @@ class UserProfilePage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: StreamBuilder<DocumentSnapshot>(
-          stream: FirebaseFirestore.instance.collection('users').doc(userId).snapshots(),
+          stream: FirebaseFirestore.instance
+              .collection('users')
+              .doc(userId)
+              .snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Text('Loading...');
@@ -209,7 +183,9 @@ class UserProfilePage extends StatelessWidget {
             if (snapshot.hasError) {
               return Text('Error: ${snapshot.error}');
             }
-            if (!snapshot.hasData || snapshot.data!.data() == null || !snapshot.data!.exists) {
+            if (!snapshot.hasData ||
+                snapshot.data!.data() == null ||
+                !snapshot.data!.exists) {
               return const Text('User not found.');
             }
             var userData = snapshot.data!.data() as Map<String, dynamic>;
@@ -218,16 +194,21 @@ class UserProfilePage extends StatelessWidget {
         ),
       ),
       body: StreamBuilder<DocumentSnapshot>(
-        stream: FirebaseFirestore.instance.collection('users').doc(userId).snapshots(),
+        stream: FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
-          if (!snapshot.hasData || snapshot.data!.data() == null || !snapshot.data!.exists) {
-            return Center(child: Text('User not found.'));
+          if (!snapshot.hasData ||
+              snapshot.data!.data() == null ||
+              !snapshot.data!.exists) {
+            return const Center(child: Text('User not found.'));
           }
           var userProfileData = snapshot.data!.data() as Map<String, dynamic>;
 
@@ -242,9 +223,10 @@ class UserProfilePage extends StatelessWidget {
                     children: [
                       CircleAvatar(
                         radius: 50,
-                        backgroundImage: NetworkImage(userProfileData['profilePicUrl']),
+                        backgroundImage:
+                            NetworkImage(userProfileData['profilePicUrl']),
                       ),
-                      SizedBox(width: 20),
+                      const SizedBox(width: 20),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -252,42 +234,60 @@ class UserProfilePage extends StatelessWidget {
                             const SizedBox(height: 8),
                             Row(
                               children: [
-                                _buildCountLabel('Followers', userProfileData['followers'] != null ? userProfileData['followers'].length : 0),
-                                SizedBox(width: 20),
-                                _buildCountLabel('Following', userProfileData['following'] != null ? userProfileData['following'].length : 0),
-                                SizedBox(width: 20),
-                                _buildCountLabel('Posts', userProfileData['postCount'] ?? 0),
+                                _buildCountLabel(
+                                    'Followers',
+                                    userProfileData['followers'] != null
+                                        ? userProfileData['followers'].length
+                                        : 0),
+                                const SizedBox(width: 20),
+                                _buildCountLabel(
+                                    'Following',
+                                    userProfileData['following'] != null
+                                        ? userProfileData['following'].length
+                                        : 0),
+                                const SizedBox(width: 20),
+                                _buildCountLabel(
+                                    'Posts', userProfileData['postCount'] ?? 0),
                               ],
                             ),
-                            SizedBox(height: 8),
+                            const SizedBox(height: 8),
                           ],
                         ),
                       ),
                     ],
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   Text(
                     '${userProfileData['bio']}',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 16.0,
                     ),
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () async {
                       if (currentUser != null) {
-                        final currentUserDoc = FirebaseFirestore.instance.collection('users').doc(currentUser.uid);
-                        final userProfileDoc = FirebaseFirestore.instance.collection('users').doc(userId);
+                        final currentUserDoc = FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(currentUser.uid);
+                        final userProfileDoc = FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(userId);
 
                         final currentUserSnapshot = await currentUserDoc.get();
                         final userProfileSnapshot = await userProfileDoc.get();
 
-                        if (currentUserSnapshot.exists && userProfileSnapshot.exists) {
-                          final currentUserData = currentUserSnapshot.data() as Map<String, dynamic>;
-                          final userProfileData = userProfileSnapshot.data() as Map<String, dynamic>;
+                        if (currentUserSnapshot.exists &&
+                            userProfileSnapshot.exists) {
+                          final currentUserData = currentUserSnapshot.data()
+                              as Map<String, dynamic>;
+                          final userProfileData = userProfileSnapshot.data()
+                              as Map<String, dynamic>;
 
-                          List<dynamic> following = List.from(currentUserData['following'] ?? []);
-                          List<dynamic> followers = List.from(userProfileData['followers'] ?? []);
+                          List<dynamic> following =
+                              List.from(currentUserData['following'] ?? []);
+                          List<dynamic> followers =
+                              List.from(userProfileData['followers'] ?? []);
 
                           if (following.contains(userId)) {
                             following.remove(userId);
@@ -298,10 +298,17 @@ class UserProfilePage extends StatelessWidget {
                           }
 
                           // Update the post count
-                          int postCount = await FirebaseFirestore.instance.collection('posts').where('userId', isEqualTo: userId).get().then((value) => value.docs.length);
+                          int postCount = await FirebaseFirestore.instance
+                              .collection('posts')
+                              .where('userId', isEqualTo: userId)
+                              .get()
+                              .then((value) => value.docs.length);
 
                           await currentUserDoc.update({'following': following});
-                          await userProfileDoc.update({'followers': followers, 'postCount': postCount}); // Update post count here
+                          await userProfileDoc.update({
+                            'followers': followers,
+                            'postCount': postCount
+                          }); // Update post count here
                         } else {
                           print('User document does not exist');
                         }
@@ -310,9 +317,12 @@ class UserProfilePage extends StatelessWidget {
                       }
                     },
                     child: Text(
-                      (userProfileData['followers'] != null && (userProfileData['followers'] as List).contains(currentUserUid))
+                      (userProfileData['followers'] != null &&
+                              (userProfileData['followers'] as List)
+                                  .contains(currentUserUid))
                           ? 'Following'
-                          : (currentUserUid != userId) // Check if the current user is viewing their own profile
+                          : (currentUserUid !=
+                                  userId) // Check if the current user is viewing their own profile
                               ? 'follow' // Display 'Following' if viewing someone else's profile
                               : 'Edit Profile', // Display 'Edit Profile' if viewing their own profile
                     ),
@@ -332,26 +342,47 @@ class UserProfilePage extends StatelessWidget {
                         .where('userId', isEqualTo: userId)
                         .snapshots(),
                     builder: (context, postSnapshot) {
-                      if (postSnapshot.connectionState == ConnectionState.waiting) {
-                        return Center(child: CircularProgressIndicator());
+                      if (postSnapshot.connectionState ==
+                          ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
                       }
                       if (postSnapshot.hasError) {
-                        return Center(child: Text('Error: ${postSnapshot.error}'));
+                        return Center(
+                            child: Text('Error: ${postSnapshot.error}'));
                       }
                       var userPosts = postSnapshot.data!.docs;
 
                       return GridView.builder(
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 3,
                           crossAxisSpacing: 8.0,
                           mainAxisSpacing: 8.0,
                         ),
                         shrinkWrap: true,
-                        physics: NeverScrollableScrollPhysics(),
+                        physics: const NeverScrollableScrollPhysics(),
                         itemCount: userPosts.length,
                         itemBuilder: (context, index) {
-                          var post = userPosts[index].data() as Map<String, dynamic>;
-                          return Image.network(post['imageUrl']);
+                          var post =
+                              userPosts[index].data() as Map<String, dynamic>;
+                          return CachedNetworkImage(
+                            imageUrl: post['imageUrl'],
+                            width: double.infinity,
+                            height: 160.0,
+                            fit: BoxFit.fitHeight,
+                            placeholder: (context, url) =>
+                                const Center(child: CircularProgressIndicator()),
+                            errorWidget: (context, url, error) =>
+                                const Icon(Icons.error),
+                            imageBuilder: (context, imageProvider) =>
+                                Image.network(
+                              post['imageUrl'],
+                              width: double.infinity,
+                              height: 160.0,
+                              fit: BoxFit.fitHeight,
+                              // This is the cached image
+                            ),
+                          );
                         },
                       );
                     },
