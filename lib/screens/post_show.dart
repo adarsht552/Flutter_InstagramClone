@@ -100,8 +100,8 @@ class PostShow extends StatelessWidget {
                 height: 300.0,
                 color: Colors.grey[800],
               ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
+              const Padding(
+                padding: EdgeInsets.all(8.0),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -111,12 +111,12 @@ class PostShow extends StatelessWidget {
                           Icons.favorite_border,
                           color: Colors.white,
                         ),
-                        const SizedBox(width: 8.0),
+                        SizedBox(width: 8.0),
                         Icon(
                           Icons.comment,
                           color: Colors.white,
                         ),
-                        const SizedBox(width: 8.0),
+                        SizedBox(width: 8.0),
                         Icon(
                           Icons.send,
                           color: Colors.white,
@@ -135,12 +135,11 @@ class PostShow extends StatelessWidget {
                 child: RichText(
                   text: TextSpan(
                     style: DefaultTextStyle.of(context).style,
-                    children: [
+                    children: const [
                       TextSpan(
                         text: '',
                         style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white),
+                            fontWeight: FontWeight.bold, color: Colors.white),
                       ),
                       TextSpan(
                         text: '',
@@ -150,8 +149,8 @@ class PostShow extends StatelessWidget {
                   ),
                 ),
               ),
-              SizedBox(height: 8.0),
-              Padding(
+              const SizedBox(height: 8.0),
+              const Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
                 child: Text(
                   '',
@@ -247,16 +246,18 @@ class _PostCardState extends State<PostCard>
           CachedNetworkImage(
             imageUrl: widget.post['imageUrl'] ?? '',
             placeholder: (context, url) => const SizedBox(
-              width: 24.0,
-              height: 24.0,
-              child: CircularProgressIndicator(
-                strokeWidth: 1.0, // Adjust the strokeWidth as needed
+              width: 50.0, // Set the width of the SizedBox
+              height: 50.0, // Set the height of the SizedBox
+              child: Center(
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.0, // Adjust the strokeWidth as needed
+                ),
               ),
             ),
             errorWidget: (context, url, error) => const Icon(Icons.error),
-            width: double.infinity,
-            height: 300.0,
-            fit: BoxFit.cover,
+            width: double.infinity, // Set width to fill the parent container
+            fit: BoxFit
+                .cover, // Maintain aspect ratio and cover the entire container
           ),
           Padding(
             padding: const EdgeInsets.all(8.0),
