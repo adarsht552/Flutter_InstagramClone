@@ -352,39 +352,33 @@ class UserProfilePage extends StatelessWidget {
                       }
                       var userPosts = postSnapshot.data!.docs;
 
-                      return GridView.builder(
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          crossAxisSpacing: 8.0,
-                          mainAxisSpacing: 8.0,
-                        ),
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: userPosts.length,
-                        itemBuilder: (context, index) {
-                          var post =
-                              userPosts[index].data() as Map<String, dynamic>;
-                          return CachedNetworkImage(
-                            imageUrl: post['imageUrl'],
-                            width: double.infinity,
-                            height: 160.0,
-                            fit: BoxFit.fitHeight,
-                            placeholder: (context, url) =>
-                                const Center(child: CircularProgressIndicator()),
-                            errorWidget: (context, url, error) =>
-                                const Icon(Icons.error),
-                            imageBuilder: (context, imageProvider) =>
-                                Image.network(
-                              post['imageUrl'],
-                              width: double.infinity,
-                              height: 160.0,
-                              fit: BoxFit.fitHeight,
-                              // This is the cached image
-                            ),
-                          );
-                        },
-                      );
+                     return GridView.builder(
+  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+    crossAxisCount: 2,
+    mainAxisSpacing: 17.0,
+    crossAxisSpacing: 17.0, // Add cross axis spacing
+  ),
+  shrinkWrap: true,
+  physics: const NeverScrollableScrollPhysics(),
+  itemCount: userPosts.length,
+  itemBuilder: (context, index) {
+    var post = userPosts[index].data() as Map<String, dynamic>;
+    return Container(
+      color: Colors.black, // Set container color if needed
+      child: CachedNetworkImage(
+        imageUrl: post['imageUrl'],
+        fit: BoxFit.cover, // Ensure the image covers the entire area
+        placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+        errorWidget: (context, url, error) => const Icon(Icons.error),
+        imageBuilder: (context, imageProvider) => Image.network(
+          post['imageUrl'],
+          fit: BoxFit.cover,
+        ),
+      ),
+    );
+  },
+);
+
                     },
                   ),
                 ],
